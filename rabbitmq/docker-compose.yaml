@@ -1,0 +1,41 @@
+version: '3.8'
+
+networks:
+  sample-code:
+    name: sample-code
+
+services:
+  publisher:
+    build: 
+      context: .
+      dockerfile: Dockerfile.pubs
+    depends_on:
+      - rabbitmq-sample
+    networks:
+      - sample-code
+
+  subscriber:
+    build: 
+      context: .
+      dockerfile: Dockerfile.subs
+    depends_on:
+      - rabbitmq-sample
+    networks:
+      - sample-code
+
+  rabbitmq-sample:
+    image: rabbitmq:4-management
+    container_name: rabbitmq-sample
+    ports:
+      - "5672:5672"   # AMQP protocol port
+      - "15672:15672" # Management UI port
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+    networks:
+      - sample-code
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 5s
+      timeout: 5s
+      retries: 5

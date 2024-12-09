@@ -1,0 +1,74 @@
+version: '3.8'
+
+networks:
+  sample-code:
+    name: sample-code
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - sample-code
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    ports:
+      - "9093:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_MESSAGE_MAX_BYTES: 1048576000
+      KAFKA_REPLICA_FETCH_MAX_BYTES: 104857600
+      KAFKA_MAX_REQUEST_SIZE: 104857600
+      KAFKA_MAX_PARTITION_FETCH_BYTES: 104857600
+    networks:
+      - sample-code
+
+  publisher:
+    build: 
+      context: .
+      dockerfile: Dockerfile.pubs
+    depends_on:
+      - kafka
+    networks:
+      - sample-code
+
+  subscriber:
+    build: 
+      context: .
+      dockerfile: Dockerfile.subs
+    depends_on:
+      - kafka
+    networks:
+      - sample-code
+
+  kafka-ui:
+    image: tchiotludo/akhq:latest
+    environment:
+      AKHQ_CONFIGURATION: |
+        akhq:
+          connections:
+            docker-kafka-server:
+              properties:
+                bootstrap.servers: "kafka:29092"
+    ports:
+      - "8088:8080"
+    depends_on:
+      - kafka
+    networks:
+      - sample-code
+
+volumes:
+  kafka-data:
+    name: sample-kafka-data

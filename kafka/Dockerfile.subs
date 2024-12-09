@@ -1,0 +1,15 @@
+FROM golang:1.22.4-alpine3.19 AS builder
+
+WORKDIR /app
+
+COPY . .
+
+# Build the binary first
+RUN go build -o subscriber ./subscriber/subscriber.go
+
+FROM alpine:latest
+
+WORKDIR /app/
+COPY --from=builder /app/subscriber .
+
+ENTRYPOINT [ "./subscriber" ]
